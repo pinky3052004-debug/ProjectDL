@@ -15,7 +15,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/with-python@v5
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
@@ -32,7 +32,7 @@ jobs:
         path: .
       continue-on-error: True
 
-    # Python Script ဖြင့် ဗီဒီယိုနှင့် Thumbnail ကို Drive မှ ဆွဲခြင်း၊ YouTube ပွဲဆောက်ခြင်း
+    # Python Script ဖြင့် DhammaYT Folder မှ ဗီဒီယိုနှင့် Thumbnail ကို ဆွဲခြင်း၊ YouTube ပွဲဆောက်ခြင်း
     - name: Process Video, Thumbnail & YouTube Setup
       id: main_process
       env:
@@ -63,9 +63,24 @@ jobs:
         drive_creds = service_account.Credentials.from_service_account_info(gdrive_info)
         drive_service = build('drive', 'v3', credentials=drive_creds)
 
-        # Drive ထဲက 'done_' ပါတဲ့ ဗီဒီယိုစာရင်းကို ရှာခြင်း
+        # DhammaYT Folder ရဲ့ ID ကို အရင်ရှာခြင်း
+        print("Searching for DhammaYT folder...")
+        folder_results = drive_service.files().list(
+            q="name = 'DhammaYT' and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+            fields="files(id)"
+        ).execute()
+        folder_files = folder_results.get('files', [])
+
+        if not folder_files:
+            print("Error: DhammaYT folder not found in Google Drive! Make sure you shared it with the Service Account.")
+            exit(1)
+            
+        folder_id = folder_files[0]['id']
+        print(f"Found DhammaYT folder with ID: {folder_id}")
+
+        # DhammaYT Folder ထဲက 'done_' ပါတဲ့ ဗီဒီယိုစာရင်းကို ရှာခြင်း
         results = drive_service.files().list(
-            q="name contains 'done_' and mimeType contains 'video/'",
+            q=f"'{folder_id}' in parents and name contains 'done_' and mimeType contains 'video/' and trashed = false",
             fields="files(id, name)"
         ).execute()
         files = results.get('files', [])
@@ -78,7 +93,7 @@ jobs:
                 break
 
         if not video_to_stream:
-            print("No new videos found to stream!")
+            print("No new videos found to stream in DhammaYT folder!")
             exit(1)
 
         print(f"Today's Selected Video: {video_to_stream['name']}")
@@ -92,12 +107,11 @@ jobs:
                 status, done = downloader.next_chunk()
         print("Video download completed.")
 
-        # ၄။ နေ့စွဲအလိုက် Thumbnail ပုံကို ရှာဖွေပြီး ဒေါင်းလုဒ်ဆွဲခြင်း
-        today_str = datetime.date.today().strftime("%Y-%m-%d") # ရလဒ်: "2026-05-18"
+        # ၄။ နေ့စွဲအလိုက် Thumbnail ပုံကို DhammaYT Folder ထဲတွင် ရှာဖွေပြီး ဒေါင်းလုဒ်ဆွဲခြင်း
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
         
-        # Google Drive ထဲမှာ "2026-05-18" အမည်ပါတဲ့ image ဖိုင်ကို ရှာခိုင်းခြင်း
         thumb_results = drive_service.files().list(
-            q=f"name contains '{today_str}' and mimeType contains 'image/'",
+            q=f"'{folder_id}' in parents and name contains '{today_str}' and mimeType contains 'image/' and trashed = false",
             fields="files(id, name)"
         ).execute()
         thumb_files = thumb_results.get('files', [])
@@ -109,7 +123,6 @@ jobs:
             target_thumb = thumb_files[0]
             print(f"Found match thumbnail: {target_thumb['name']}")
             
-            # Thumbnail ပုံကို download ဆွဲခြင်း
             thumb_request = drive_service.files().get_media(fileId=target_thumb['id'])
             with open(thumbnail_path, "wb") as f:
                 thumb_downloader = MediaIoBaseDownload(f, thumb_request)
@@ -119,7 +132,7 @@ jobs:
             has_thumbnail = True
             print("Thumbnail download completed.")
         else:
-            print(f"No thumbnail found for today's date ({today_str}). Proceeding without custom thumbnail.")
+            print(f"No thumbnail found for today's date ({today_str}) in DhammaYT folder. Proceeding without custom thumbnail.")
 
         # ၅။ YouTube API ချိတ်ဆက်ခြင်း
         yt_creds = google.oauth2.credentials.Credentials(
@@ -129,7 +142,7 @@ jobs:
         )
         youtube = build('youtube', 'v3', credentials=yt_creds)
 
-        # ၆။ Dynamic အချိန်နှင့် ရက်စွဲများ သတ်မှတ်ခြင်း (မနက် ၄:၃၀ Live ပြသရန်)
+        # ၆။ Dynamic အချိန်နှင့် ရက်စွဲများ သတ်မှတ်ခြင်း (မနက် ၄:၃၀ Live ပြသရန် Scheduled လုပ်ခြင်း)
         now = datetime.datetime.now(datetime.timezone.utc)
         scheduled_time = now.replace(hour=22, minute=0, second=0, microsecond=0).isoformat()
         formatted_date = datetime.date.today().strftime("%B %d, %Y")
@@ -171,7 +184,7 @@ jobs:
 
         ✅ Subscribe: / @Dhamma-Mate_Swe
 
-        🌿 𝟒–𝟕 𝐇𝐨𝐮𝐫𝐬 𝐏eaceful 𝐁uddha 𝐂hanting & 𝐃hamma 𝐒tream 🕊️
+        🌿 𝟒–𝟕 𝐇𝐨𝐮𝐫ս 𝐏eaceful 𝐁uddha 𝐂hanting & 飾hamma 𝐒tream 🕊️
         Welcome to our mindful meditation space. This stream is dedicated to the preservation and sharing of the Buddha’s original teachings (Tipiṭaka/Pali Canon), specifically designed for deep meditation, relaxation, and spiritual learning.
 
         ✨ Stream Features & Originality
@@ -187,7 +200,7 @@ jobs:
         Copyright Disclaimer Under Section 107 of the Copyright Act 1976, allowance is made for "fair use" for purposes such as criticism, comment, news reporting, teaching, scholarship, and research.
 
         May all beings be happy, peaceful, and free from suffering.
-        🙏🙏设If You Like This Video Don't Forget To 
+        🙏🙏 If You Like This Video Don't Forget To 
         ✅ 𝗟𝗶𝗸𝗲  ✅ 𝗦𝑢𝑏𝑠𝑐𝑟𝑖𝑏𝑒  ✅ 𝗖𝗼𝗺𝗺𝗲𝗻𝘁  ✅ 𝗦𝗵𝗮𝗿𝗲
 
         THANKS FOR WATCHING!
@@ -264,7 +277,7 @@ jobs:
         EOF
         python process.py
 
-    # ၁၀။ မနက် ၂:၃၀ တွင် ဒေါင်းလုဒ်ဆွဲထားသော ဗီဒီယိုကို YouTube ဆာဗာသို့ ချက်ချင်း Live လွှင့်ခြင်း
+    # ၁၀။ FFmpeg ကိုအသုံးပြုပြီး ဒေါင်းလုဒ်ဆွဲထားသော ဗီဒီယိုကို YouTube ဆာဗာသို့ ချက်ချင်း Live လွှင့်ခြင်း
     - name: Start FFmpeg Streaming (At 2:30 AM MMT)
       run: |
         echo "Streaming today's video to YouTube..."
