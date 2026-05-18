@@ -135,12 +135,10 @@ jobs:
         )
         youtube = build('youtube', 'v3', credentials=yt_creds)
 
-        # ၆။ Dynamic အချိန်နှင့် ရက်စွဲများ သတ်မှတ်ခြင်း (မနက် ၄:၃၀ Live ပြသရန် Scheduled လုပ်ခြင်း)
-        now = datetime.datetime.now(datetime.timezone.utc)
-        scheduled_time = now.replace(hour=22, minute=0, second=0, microsecond=0).isoformat()
+        # ၆။ Dynamic ရက်စွဲ သတ်မှတ်ခြင်း (ချက်ချင်းလွှင့်မည်ဖြစ်၍ scheduledStartTime မလိုအပ်တော့ပါ)
         formatted_date = datetime.date.today().strftime("%B %d, %Y")
 
-        # တရားတော် Metadata ခေါင်းစဉ်တို (၁၀၀ လုံးအောက်) သတ်မှတ်ခြင်း
+        # တရားတော် Metadata ခေါင်းစဉ်တို (၁၀၀ လုံးအောက်)
         live_title = f"🌄နံနက်ခင်း ကံပွင့်လာဘ်ပွင့် တရားတော်များ | {formatted_date}"
 
         live_description = f"""🌄🙏🌻နံနက်ခင်းမှစ ကံပွင့်လာဘ်ပွင့် ​​စီးပွားတက် စေရန် မဟာသမယသုတ် မေတ္တာသုတ် ရတနသုတ် တရားတော်များ
@@ -177,7 +175,7 @@ jobs:
 
         ✅ Subscribe: / @Dhamma-Mate_Swe
 
-        🌿 𝟒–𝟕 𝐇𝐨𝐮𝐫ս 𝐏eaceful 𝐁uddha 𝐂hanting & 𝓓hamma 𝓢tream 🕊️
+        🌿 🗄️–🗇 𝐇𝐨𝐮𝐫𝐬 𝐏eaceful 𝐁uddha 𝐂hanting & 𝓓hamma 𝓢tream 🕊️
         Welcome to our mindful meditation space. This stream is dedicated to the preservation and sharing of the Buddha’s original teachings (Tipiṭaka/Pali Canon), specifically designed for deep meditation, relaxation, and spiritual learning.
 
         ✨ Stream Features & Originality
@@ -211,14 +209,13 @@ jobs:
             "တရား live stream", "tayar live"
         ]
 
-        # ၇။ YouTube Broadcast ပွဲဆောက်ခြင်း
+        # ၇။ YouTube Broadcast ပွဲဆောက်ခြင်း (Instant Live ပုံစံပြောင်းလဲထားသည်)
         broadcast_res = youtube.liveBroadcasts().insert(
             part="snippet,status",
             body={
                 "snippet": {
                     "title": live_title,
                     "description": live_description,
-                    "scheduledStartTime": scheduled_time,
                     "tags": live_tags
                 },
                 "status": {
@@ -271,7 +268,7 @@ jobs:
         python process.py
 
     # ၁၀။ FFmpeg ကိုအသုံးပြုပြီး ဒေါင်းလုဒ်ဆွဲထားသော ဗီဒီယိုကို YouTube ဆာဗာသို့ ချက်ချင်း Live လွှင့်ခြင်း
-    - name: Start FFmpeg Streaming (At 2:30 AM MMT)
+    - name: Start FFmpeg Streaming (Instant Live)
       run: |
         echo "Streaming today's video to YouTube..."
         ffmpeg -re -i "video.mp4" \
