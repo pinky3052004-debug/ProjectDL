@@ -3,7 +3,7 @@ name: YouTube Live from Google Drive (One Video Per Day)
 on:
   schedule:
     # မြန်မာစံတော်ချိန် နေ့စဉ် မနက် ၄:၃၀ နာရီ (UTC 22:00) တွင် အလိုအလျောက် တန်းပွင့်မည်
-    - cron: '0 22 * * *'
+    - cron: '0 10 * * *'
   workflow_dispatch: 
 
 jobs:
