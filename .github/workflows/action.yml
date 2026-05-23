@@ -2,8 +2,9 @@ name: YouTube Live from Google Drive (One Video Per Day)
 
 on:
   schedule:
-    # မြန်မာစံတော်ချိန် နေ့စဉ် မနက် ၄:၃၀ နာရီ (UTC 22:00) တွင် အလိုအလျောက် တန်းပွင့်မည်
-    - cron: '47 1 * * *'
+    # မြန်မာစံတော်ချိန် နေ့စဉ် မနက် ၅:၃၀ နာရီတွင် လွှင့်မည်ဖြစ်၍
+    # GitHub Automation အနေဖြင့် မိနစ် ၄၀ ခန့် ကြိုတင်ပြင်ဆင်နိုင်ရန် UTC 22:00 (မြန်မာစံတော်ချိန် မနက် ၄:၃၀) တွင် စတင်အလုပ်လုပ်စေပါမည်
+    - cron: '00 22 * * *'
   workflow_dispatch: 
 
 jobs:
@@ -75,7 +76,6 @@ jobs:
             streamed_videos = fh.getvalue().decode('utf-8').splitlines()
             print("Successfully read history from Google Drive.")
         else:
-            # ဖိုင်မရှိသေးရင် Error မတက်ဘဲ ပုံမှန်အတိုင်း ဆက်လုပ်ရန် ကာကွယ်ထားသည်
             print("history.txt not found on Google Drive. Will create a new one later.")
 
         # ၃။ Folder ID ထဲက 'done_' ပါတဲ့ ဗီဒီယိုစာရင်းကို ရှာခြင်း
@@ -144,9 +144,19 @@ jobs:
         )
         youtube = build('youtube', 'v3', credentials=yt_creds)
 
-        now = datetime.datetime.now(datetime.timezone.utc)
-        instant_scheduled_time = (now + datetime.timedelta(seconds=5)).isoformat()
-        formatted_date = datetime.date.today().strftime("%B %d, %Y")
+        # မြန်မာစံတော်ချိန် (UTC+6:30) အတွက် Target Time သတ်မှတ်ခြင်း
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        mm_tz = datetime.timezone(datetime.timedelta(hours=6, minutes=30))
+        now_mm = now_utc.astimezone(mm_tz)
+        
+        # CHANGED: မြန်မာစံတော်ချိန် မနက် ၅:၃၀ နာရီ (hour=5, minute=30) တိတိကျကျ သတ်မှတ်ထားပါသည်
+        scheduled_target = now_mm.replace(hour=5, minute=30, second=0, microsecond=0)
+        if scheduled_target < now_mm:
+            # အကယ်၍ Action အလုပ်လုပ်ချိန် နောက်ကျသွားပါက အမှားအယွင်းမရှိစေရန် လက်ရှိအချိန်ထက် ၅ မိနစ်တိုး၍ သတ်မှတ်ခြင်း
+            scheduled_target = now_mm + datetime.timedelta(minutes=5)
+            
+        iso_scheduled_time = scheduled_target.astimezone(datetime.timezone.utc).isoformat().replace('+00:00', 'Z')
+        formatted_date = now_mm.strftime("%B %d, %Y")
 
         live_title = f"🌄နံနက်ခင်း ကံပွင့်လာဘ်ပွင့် စီးပွားတက် မဟာသမယသုတ် မေတ္တာသုတ် ရတနသုတ် တရားတော်များ | {formatted_date}"
         live_description = f"""🌄🙏🌻နံနက်ခင်းမှစ ကံပွင့်လာဘ်ပွင့် ​​စီးပွားတက် စေရန် မဟာသမယသုတ် မေတ္တာသုတ် ရတနသုတ် တရားတော်များ
@@ -169,10 +179,10 @@ jobs:
         ▶️📌တရားနာယူရန် Playlist Link:
            • ညပိုင်းပူဇော်ရန် ဘေးအန္တရာယ်ကင်း ကံပွင်လာဘ...  
 
-        📘ပါမောက္ခချုပ်ဆရာတော် အရှင်နန္ဒမာလာဘ比ဝံသ ဟောကြားထားသောတရားတော်များ✨
+        📘ပါမောက္ခချုပ်ဆရာတော် အရှင်နန္ဒမာလာဘိဝံသ ဟောကြားထားသောတရားတော်များ✨
         🌼 နေ့စဉ်နားထောင်နိုင်သော တရားတော်များကို တိကျစွာစီစဉ်ထားခြင်းဖြစ်ပါသည်။
         ▶️📌တရားနာယူရန် Playlist Link:
-           • ပါ‌မောက္ခချုပ်ဆရာတော် ဒေါက်တာနန္ဒမာလာဘ比၀ံသ...  
+           • ပါ‌မောက္ခချုပ်ဆရာတော် ဒေါက်တာနန္ဒမာလာဘိ၀ံသ...  
 
         မင်္ဂလာပါ
         📌ပရိတ်တရားတော် ပဌာန်းဒေသနာတော်များကို လေးလေးစားစားနာယူခြင်း ရွတ်ဖက်ပူဇော်ခြင်းသည် မကောင်းသော အမှောင်ပယောဂ ဘေးဘယ ရန်မာရ်အပေါင်းတို့မှကင်းဝေးစေခြင်း ၊ ကပ်ရောဂါ ဒုက္ခဆင်းရဲခြင်းအပေါင်းတို့မှ ကင်းဝေးစေခြင်း ၊ ကိုယ်စိတ်နှစ်ဖြာကျန်းမာချမ်းသာစေခြင်း အစရှိသည့် သုခအပေါင်းတို့ဖြင့် ပြည့်စုံစေပါသည်။
@@ -224,11 +234,11 @@ jobs:
                 "snippet": {
                     "title": live_title,
                     "description": live_description,
-                    "scheduledStartTime": instant_scheduled_time,
+                    "scheduledStartTime": iso_scheduled_time,
                     "tags": live_tags
                 },
                 "status": {
-                    "privacyStatus": "private",
+                    "privacyStatus": "public",
                     "selfBroadcast": True,
                     "selfDeclaredMadeForKids": False
                 },
@@ -269,18 +279,15 @@ jobs:
         updated_history_content = "\n".join(streamed_videos) + "\n"
 
         fh_upload = io.BytesIO(updated_history_content.encode('utf-8'))
-        # သတိပြုရန်- 'mimetype' ဟု စာလုံးအသေးဖြင့် ပြင်ဆင်ထားပါသည်
         media_body = MediaIoBaseUpload(fh_upload, mimetype='text/plain', resumable=True)
 
         if history_file_id:
-            # ဖိုင်ဟောင်းရှိပြီးသားဆိုလျှင် Update လုပ်မည်
             drive_service.files().update(
                 fileId=history_file_id,
                 media_body=media_body
             ).execute()
             print("history.txt updated on Google Drive successfully!")
         else:
-            # ပထမဆုံးအကြိမ် ဖိုင်မရှိသေးလျှင် Google Drive ပေါ်တွင် အလိုအလျောက် အသစ်ဆောက်မည်
             file_metadata = {'name': 'history.txt', 'parents': [folder_id]}
             new_history_file = drive_service.files().create(
                 body=file_metadata,
@@ -296,9 +303,9 @@ jobs:
         python process.py
 
     # ၁၁။ FFmpeg ကိုအသုံးပြုပြီး YouTube ဆာဗာသို့ Live လွှင့်ခြင်း
-    - name: Start FFmpeg Streaming (Automated Unlisted Mode)
+    - name: Start FFmpeg Streaming (Automated Native Live Mode)
       run: |
-        echo "Streaming today's video to YouTube..."
+        echo "Streaming today's video to YouTube Live room..."
         ffmpeg -re -i "video.mp4" \
           -c:v libx264 -preset veryfast -b:v 3000k -maxrate 3000k -bufsize 6000k \
           -pix_fmt yuv420p -g 60 -c:a aac -b:a 128k -ar 44100 \
